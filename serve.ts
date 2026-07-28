@@ -203,6 +203,22 @@ async function handleApi(req: Request): Promise<Response | null> {
       if (!project_id) return json({ error: "project_id is required" }, 400, corsHeaders());
       const proj = await getSql()`SELECT id FROM projects WHERE id = ${project_id}`;
       if (proj.length === 0) return json({ error: "project not found" }, 404, corsHeaders());
+
+      // Enforce free tier cap: 50 reports per calendar month per project
+      const countRows = await getSql()`
+        SELECT COUNT(*)::int AS cnt FROM reports
+        WHERE project_id = ${project_id}
+          AND date_trunc('month', created_at) = date_trunc('month', NOW())
+      `;
+      const monthCount: number = countRows[0]?.cnt ?? 0;
+      if (monthCount >= 50) {
+        return json({
+          error: "Free plan limit reached",
+          limit: 50,
+          upgrade_url: "https://buy.stripe.com/aFaeVf0HL9K3a7q68K0Ba00",
+        }, 402, corsHeaders());
+      }
+
       const rows = await getSql()`INSERT INTO reports (project_id, description, screenshot, browser_info, reporter_email) VALUES (${project_id}, ${description || ""}, ${screenshot || null}, ${JSON.stringify(browser_info || {})}, ${reporter_email || null}) RETURNING id, status`;
       return json({ id: rows[0].id, status: rows[0].status }, 201, corsHeaders());
     } catch (err) { console.error("create report:", err); return json({ error: "internal server error" }, 500, corsHeaders()); }
