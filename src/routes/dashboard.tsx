@@ -285,7 +285,7 @@ function DashboardPage() {
   /* ---- Logout ---- */
   const handleLogout = useCallback(async () => {
     await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
-    navigate({ to: "/" });
+    navigate({ to: "/login" });
   }, [navigate]);
 
   /* ---- Derived stats ---- */
