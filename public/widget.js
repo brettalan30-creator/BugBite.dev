@@ -398,6 +398,15 @@
       body: JSON.stringify(payload),
     })
       .then(function (resp) {
+        if (resp.status === 402) {
+          return resp.json().then(function (data) {
+            state.isSubmitting = false;
+            state.error = 'This project has reached the free plan limit (' + (data.limit || 50) + ' reports/month). The site owner needs to upgrade to Pro.';
+            state.isOpen = true;
+            state.isSuccess = false;
+            render();
+          });
+        }
         if (!resp.ok) {
           return resp.json().then(function (data) {
             throw new Error(data.error || 'Request failed with status ' + resp.status);
@@ -405,7 +414,8 @@
         }
         return resp.json();
       })
-      .then(function () {
+      .then(function (data) {
+        if (!data) return; // 402 was handled inline above
         state.isSubmitting = false;
         state.isSuccess = true;
         state.isOpen = false;

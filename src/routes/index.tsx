@@ -240,7 +240,7 @@ function Hero() {
 
         {/* Trust indicator */}
         <p className="mt-8 text-sm text-gray-400">
-          No credit card required · Free for up to 50 reports/month
+          No credit card required · 50 reports/month (limit enforced)
         </p>
       </div>
     </section>
@@ -321,7 +321,7 @@ function Pricing() {
       period: "forever",
       description: "Perfect for side projects and solo developers testing the waters.",
       features: [
-        "Up to 50 reports per month",
+        { text: "50 reports per month (strictly enforced)", highlight: true },
         "Single project",
         "Basic dashboard",
         "Screenshot capture",
@@ -390,12 +390,18 @@ function Pricing() {
               </div>
 
               <ul className="mb-8 flex-1 space-y-3">
-                {plan.features.map((feature) => (
-                  <li key={feature} className="flex items-start gap-3 text-sm text-gray-600">
-                    <CheckIcon />
-                    {feature}
-                  </li>
-                ))}
+                {plan.features.map((feature) => {
+                  const text = typeof feature === "string" ? feature : feature.text;
+                  const highlight = typeof feature === "object" && feature.highlight;
+                  return (
+                    <li key={text} className="flex items-start gap-3 text-sm text-gray-600">
+                      <CheckIcon />
+                      <span className={highlight ? "font-bold text-amber-600" : ""}>
+                        {text}
+                      </span>
+                    </li>
+                  );
+                })}
               </ul>
 
               <a
