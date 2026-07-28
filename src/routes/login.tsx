@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export const Route = createFileRoute("/login")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -48,6 +48,10 @@ function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  // Already-logged-in check
+  const [checkingAuth, setCheckingAuth] = useState(true);
+  const [existingUser, setExistingUser] = useState<string | null>(null);
+
   // Login fields
   const [loginUser, setLoginUser] = useState("");
   const [loginPass, setLoginPass] = useState("");
@@ -56,6 +60,25 @@ function LoginPage() {
   const [regUser, setRegUser] = useState("");
   const [regPass, setRegPass] = useState("");
   const [regConfirm, setRegConfirm] = useState("");
+
+  /* ---- Check if already logged in ---- */
+  useEffect(() => {
+    fetch("/api/auth/me", { credentials: "include" })
+      .then(async (res) => {
+        if (res.ok) {
+          const data = await res.json();
+          setExistingUser(data.user?.username || null);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setCheckingAuth(false));
+  }, []);
+
+  async function handleAlreadyLoggedInLogout() {
+    await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
+    setExistingUser(null);
+    setCheckingAuth(false);
+  }
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -133,8 +156,48 @@ function LoginPage() {
         </div>
       </header>
 
-      {/* Form */}
+      {/* Content */}
       <div className="flex flex-1 items-center justify-center px-4 py-12">
+        {checkingAuth ? (
+          <div className="flex items-center gap-3 text-gray-500">
+            <svg className="h-5 w-5 animate-spin" viewBox="0 0 24 24" fill="none">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+            <span className="text-sm">Checking session...</span>
+          </div>
+        ) : existingUser ? (
+          <div className="w-full max-w-md">
+            <div className="rounded-2xl bg-white p-8 shadow-sm ring-1 ring-gray-200 text-center">
+              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-indigo-100">
+                <svg className="h-6 w-6 text-indigo-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                  <circle cx="12" cy="7" r="4" />
+                </svg>
+              </div>
+              <h1 className="text-xl font-bold text-gray-900">
+                You're already signed in
+              </h1>
+              <p className="mt-1 text-sm text-gray-500">
+                as <span className="font-semibold text-gray-700">{existingUser}</span>
+              </p>
+              <div className="mt-6 flex flex-col gap-3">
+                <a
+                  href="/dashboard"
+                  className="w-full rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 transition-colors inline-block text-center"
+                >
+                  Go to Dashboard
+                </a>
+                <button
+                  onClick={handleAlreadyLoggedInLogout}
+                  className="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+                >
+                  Sign out
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : (
         <div className="w-full max-w-md">
           <div className="rounded-2xl bg-white p-8 shadow-sm ring-1 ring-gray-200">
             <h1 className="text-2xl font-bold text-gray-900 text-center">
@@ -276,6 +339,7 @@ function LoginPage() {
             )}
           </div>
         </div>
+        )}
       </div>
     </div>
   );
